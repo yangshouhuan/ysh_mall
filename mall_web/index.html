@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <style type="text/css">
+        .pay-code {
+            width: 200px;
+            height: 200px;
+            border: 1px solid red;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="request-list"></div>
+    <div class="pay-code"></div>
+
+    <script type="text/javascript" src="./js/jquery.min.js"></script>
+    <script type="text/javascript" src="./js/jquery-qrcode.min.js"></script>
+    <script type="text/javascript" src="./js/axios.min.js"></script>
+    <script type="text/javascript" src="./js/service.js"></script>
+    <script type="text/javascript" src="./js/websocket.js"></script>
+    <script type="text/javascript" src="./js/api.js"></script>
+    <script type="text/javascript">
+
+        const requestListEl = $('.request-list')
+        const requestList = [
+            {
+                text: '登录',
+                method: 'get',
+                url: '/user/login',
+                data: {
+                    username: 'zhangsan',
+                    password: '123456'
+                },
+                success: (res) => {
+                    document.cookie = 'token=' + res.msg
+                }
+            },
+            {
+                text: '注册',
+                method: 'post',
+                url: '/user/regist',
+                data: {
+                    username: 'ddd',
+                    password: 123456,
+                }
+            },
+            {
+                text: '资源列表',
+                method: 'get',
+                url: '/shopcart/list',
+                data: {
+                    pageNum: 1,
+                    pageSize: 10,
+                }
+            },
+            {
+                text: '轮播图',
+                method: 'get',
+                url: '/index/indeximg'
+            },
+            {
+                text: '分类列表',
+                method: 'get',
+                url: '/index/categorylist'
+            },
+            {
+                text: '商品推荐列表',
+                method: 'get',
+                url: '/index/listrecmomends'
+            },
+            {
+                text: '一级分类商品推荐列表',
+                method: 'get',
+                url: '/index/listcategoryrecmomends'
+            },
+            {
+                text: '查询商品详情',
+                method: 'get',
+                url: '/product/detailinfo/3'
+            },
+            {
+                text: '查询商品参数信息',
+                method: 'get',
+                url: '/product/detailparams/3'
+            },
+            {
+                text: '商品评论查询接口',
+                method: 'get',
+                url: '/product/detailComments/3',
+                data: {
+                    pageNum: 2,
+                    limit: 3
+                }
+            },
+            {
+                text: '商品评论统计',
+                method: 'get',
+                url: '/product/detailCommentsCount/3'
+            },
+            {
+                text: '加入购物车',
+                method: 'post',
+                url: '/shopcart/add',
+                data: {
+                    "cartId": 0,
+                    "cartNum": "3",
+                    "cartTime": "",
+                    "productId": "3",
+                    "productPrice": 30,
+                    "skuId": "3",
+                    "skuProps": "口味: 辣",
+                    "userId": "1"
+                }
+            },
+            {
+                text: '查询购物列表',
+                method: 'get',
+                url: '/shopcart/list?userId=1'
+            },
+            {
+                text: '增加购物车数量',
+                method: 'put',
+                url: '/shopcart/update/5/4'
+            },
+            {
+                text: '收货地址列表',
+                method: 'get',
+                url: '/useraddr/list',
+                data: {
+                    userId: 1
+                }
+            },
+            {
+                text: '购物车详情',
+                method: 'get',
+                url: '/shopcart/listbycids',
+                data: {
+                    cids: '17,18'
+                }
+            },
+            {
+                text: '添加订单',
+                method: 'post',
+                url: '/order/add?cids=17,18',
+                data: {
+                    actualAmount: 1,
+                    orderRemark: "订单备注",
+                    payType: 1,  // 1微信支付 2支付宝支付
+                    receiverAddress: "广西贵港桂平",
+                    receiverMobile: "18888888888",
+                    receiverName: "张三",
+                    totalAmount: 1,
+                    userId: 1
+                },
+                success: (res) => {
+                    if (res.code === 10000) {
+                        // 支付成功
+                        $('.pay-code').qrcode({
+                            render: 'canvas',
+                            width: 200,
+                            height: 200,
+                            correctLevel:0,
+                            text: res.data.payUrl
+                        })
+                        // 通过websocket监听支付是否完成
+                        orderWebsocket(res.data.orderId)
+                    } else {
+                        console.log('支付失败')
+                    }
+                }
+            },
+            {
+                text: '获取订单状态',
+                method: 'get',
+                url: '/order/status/053f82c3b6234e8784ded0864773d77f'
+            },
+            {
+                text: '根据商品类别id查询商品',
+                method: 'get',
+                url: '/product/listbycid/49',
+                data: {
+                    pageNum: 1,
+                    limit: 5
+                }
+            },
+            {
+                text: '根据商品类别id查询商品品牌',
+                method: 'get',
+                url: '/product/listbrands/49'
+            },
+            {
+                text: '根据关键字查询商品品牌',
+                method: 'get',
+                url: '/product/listbrands',
+                data: {
+                    keyword: '虾条'
+                }
+            },
+            {
+                text: '根据关键字查询商品品牌',
+                method: 'get',
+                url: '/product/listkeyword',
+                data: {
+                    keyword: '虾条',
+                    pageNum: 1,
+                    limit: 5
+                }
+            },
+            {
+                text: '验证token是否过期',
+                method: 'get',
+                url: '/user/check'
+            },
+            {
+                text: '根据订单状态获取订单列表',
+                method: 'get',
+                url: '/order/list',
+                data: {
+                    status: '2',
+                    pageNum: 1,
+                    limit: 5,
+                    userId: '1'
+                }
+            },
+        ]
+
+        ;(function init () {
+            renderButtonList(requestList)
+            requestListEl.on('click', 'button', function (e) {
+                const url = $(this).attr('url')
+                for (let i = 0; i < requestList.length; i++) {
+                    const item = requestList[i]
+                    if (url === item.url) {
+                        invokeRequest({method: item.method, url, data: item.data, success: item.success, headers: item.headers})
+                        break
+                    }
+                }
+
+            })
+        })();
+
+        function renderButtonList (list) {
+            list.forEach(item => {
+                const $button = $(`<button>${item.text}</button>`)
+                $button.attr('url', item.url)
+                requestListEl.append($button)
+            })
+        }
+
+        function invokeRequest (data) {
+            if (typeof data.success !== 'function') {
+                data.success = (res) => {
+                    console.log(res)
+                }
+            }
+            const { url, headers, success, method } = data
+            if (method === 'get') {
+                requestGET({
+                    headers,
+                    url,
+                    data: data.data
+                })
+                .then(success)
+            } else if (method === 'post') {
+                requestPOST({
+                    headers,
+                    url,
+                    data: data.data
+                })
+                .then(success)
+            } else if (method === 'put') {
+                requestPUT({
+                    headers,
+                    url,
+                    data: data.data
+                })
+                .then(success)
+            }
+        }
+
+    </script>
+</body>
+</html>

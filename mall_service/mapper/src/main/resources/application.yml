@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      ## 如果后端项目服务器和数据库服务器不在同一台主机，则需要修改localhost为数据库服务器ip地址
+      #url: jdbc:mysql://localhost:3306/ysh_mall_tiny?characterEncoding=utf-8
+      #username: root
+      #password: 123456
+      url: jdbc:mysql://192.168.113.108:3306/ysh_mall_tiny?characterEncoding=utf-8
+      username: ysh
+      password: ysh123456
+    driver-class-name: com.mysql.jdbc.Driver
+mybatis:
+  mapper-locations: classpath:mappers/*Mapper.xml
+  type-aliases-package: com.qfedu.fmmall.entity
+
+logging:
+  level:
+    io.swagger.models.parameters.AbstractSerializableParameter: error
